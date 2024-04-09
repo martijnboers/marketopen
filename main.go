@@ -6,10 +6,29 @@ import (
 )
 
 type Market struct {
-	Name         string
-	Location     string
-	TimeZone     string
-	TradingHours []time.Time
+	Name             string
+	Location         string
+	TimeZoneLocation string
+	TradingHours     []time.Time
+}
+
+func (m Market) isOpen() bool {
+	location, _ := time.LoadLocation(m.TimeZoneLocation)
+	nowIn := time.Now().In(location)
+
+	// Opening hours always come in pairs
+	for i := 0; i < len(m.TradingHours); i += 2 {
+		opening := m.TradingHours[i]
+		closing := m.TradingHours[i+1]
+
+		fmt.Printf("awareTime: (%v) opening: (%v) closing (%s)", nowIn, opening, closing)
+
+		if nowIn.After(opening) && nowIn.Before(closing) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func main() {
@@ -26,7 +45,8 @@ func main() {
 		{"London Stock Exchange", "London, United Kingdom", "Europe/London", parseTimes("08:00", "16:30")},
 		{"Frankfurt Stock Exchange", "Frankfurt, Germany", "Europe/Berlin", parseTimes("08:00", "22:00")},
 		{"SIX Swiss Exchange", "Zurich, Switzerland", "Europe/Zurich", parseTimes("09:00", "17:20")},
-		{"Euronext Amsterdam", "Amsterdam, Netherlands", "Europe/Amsterdam", parseTimes("09:00", "17:30")},
+		// Testing with later time
+		{"Euronext Amsterdam", "Amsterdam, Netherlands", "Europe/Amsterdam", parseTimes("09:00", "23:30")},
 		{"Stockholm Stock Exchange", "Stockholm, Sweden", "Europe/Stockholm", parseTimes("09:00", "17:25")},
 		{"B3 S.A.", "São Paulo, Brazil", "America/Sao_Paulo", parseTimes("10:00", "17:55")},
 		{"Johannesburg Stock Exchange (JSE)", "Johannesburg, South Africa", "Africa/Johannesburg", parseTimes("09:00", "17:00")},
@@ -34,7 +54,7 @@ func main() {
 	}
 
 	for _, market := range markets {
-		fmt.Printf("%s := NewMarket(\"%s\", \"%s\", %v)\n", market.Name, market.Location, market.TimeZone, market.TradingHours)
+		fmt.Printf("(%s) IS OPEN: %v \n", market.Name, market.isOpen())
 	}
 }
 
@@ -46,4 +66,3 @@ func parseTimes(times ...string) []time.Time {
 	}
 	return parsedTimes
 }
-
