@@ -8,37 +8,31 @@ import (
 const timeFormat = "15:04"
 
 type Market struct {
-	Name         string
-	TradingHours []time.Time
-	LocalTime    time.Time
+	Name             string
+	TimeZoneLocation string
+	TradingHours     []string
 }
 
-func NewMarket(name string, timezoneLocation string, times ...string) *Market {
-	var parsedTimes []time.Time
-	location, err := time.LoadLocation(timezoneLocation)
-
+func (m Market) isOpen() bool {
+	location, err := time.LoadLocation(m.TimeZoneLocation)
 	if err != nil {
 		fmt.Println(err)
 	}
-	nowIn := time.Now().In(location)
+	var nowIn = time.Now().In(location)
+	var parsedTimes []time.Time
 
-	for _, t := range times {
+	for _, t := range m.TradingHours {
 		parsedTime, _ := time.Parse(timeFormat, t)
 		parsedDateTime := time.Date(nowIn.Year(), nowIn.Month(), nowIn.Day(), parsedTime.Hour(), parsedTime.Minute(), 0, 0, nowIn.Location())
 		parsedTimes = append(parsedTimes, parsedDateTime)
 	}
 
-	market := Market{name, parsedTimes, nowIn}
-	return &market
-}
-
-func (m Market) isOpen() bool {
 	// Opening hours always come in pairs
-	for i := 0; i < len(m.TradingHours); i += 2 {
-		opening := m.TradingHours[i]
-		closing := m.TradingHours[i+1]
+	for i := 0; i < len(parsedTimes); i += 2 {
+		opening := parsedTimes[i]
+		closing := parsedTimes[i+1]
 
-		if m.LocalTime.After(opening) && m.LocalTime.Before(closing) {
+		if nowIn.After(opening) && nowIn.Before(closing) {
 			return true
 		}
 	}
@@ -48,23 +42,23 @@ func (m Market) isOpen() bool {
 
 func main() {
 	markets := []Market{
-		*NewMarket("New York Stock Exchange (NYSE)", "America/New_York", "09:30", "16:00"),
-		*NewMarket("Tokyo Stock Exchange", "Asia/Tokyo", "09:00", "11:30", "12:30", "15:00"),
-		*NewMarket("Stock Exchange of Hong Kong (SEHK)", "Asia/Hong_Kong", "09:30", "12:00", "13:00", "16:00"),
-		*NewMarket("National Stock Exchange of India (NSE)", "Asia/Kolkata", "09:15", "15:30"),
-		*NewMarket("Shanghai Stock Exchange (SSE)", "Asia/Shanghai", "09:30", "11:30", "13:00", "14:57"),
-		*NewMarket("Shenzhen Stock Exchange (SZSE)", "Asia/Shanghai", "09:30", "11:30", "13:00", "14:57"),
-		*NewMarket("BSE Limited", "Asia/Kolkata", "09:15", "15:30"),
-		*NewMarket("Toronto Stock Exchange (TSX)", "America/Toronto", "09:30", "16:00"),
-		*NewMarket("Nasdaq Stock Market", "America/New_York", "09:30", "16:00"),
-		*NewMarket("London Stock Exchange", "Europe/London", "08:00", "16:30"),
-		*NewMarket("Frankfurt Stock Exchange", "Europe/Berlin", "08:00", "22:00"),
-		*NewMarket("SIX Swiss Exchange", "Europe/Zurich", "09:00", "17:20"),
-		*NewMarket("Euronext Amsterdam", "Europe/Amsterdam", "09:00", "17:30"),
-		*NewMarket("Stockholm Stock Exchange", "Europe/Stockholm", "09:00", "17:25"),
-		*NewMarket("B3 S.A.", "America/Sao_Paulo", "10:00", "17:55"),
-		*NewMarket("Johannesburg Stock Exchange (JSE)", "Africa/Johannesburg", "09:00", "17:00"),
-		*NewMarket("Australian Securities Exchange (ASX)", "Australia/Sydney", "10:00", "16:00"),
+		{"New York Stock Exchange (NYSE)", "America/New_York", []string{"09:30", "16:00"}},
+		{"Tokyo Stock Exchange", "Asia/Tokyo", []string{"09:00", "11:30", "12:30", "15:00"}},
+		{"Stock Exchange of Hong Kong (SEHK)", "Asia/Hong_Kong", []string{"09:30", "12:00", "13:00", "16:00"}},
+		{"National Stock Exchange of India (NSE)", "Asia/Kolkata", []string{"09:15", "15:30"}},
+		{"Shanghai Stock Exchange (SSE)", "Asia/Shanghai", []string{"09:30", "11:30", "13:00", "14:57"}},
+		{"Shenzhen Stock Exchange (SZSE)", "Asia/Shanghai", []string{"09:30", "11:30", "13:00", "14:57"}},
+		{"BSE Limited", "Asia/Kolkata", []string{"09:15", "15:30"}},
+		{"Toronto Stock Exchange (TSX)", "America/Toronto", []string{"09:30", "16:00"}},
+		{"Nasdaq Stock Market", "America/New_York", []string{"09:30", "16:00"}},
+		{"London Stock Exchange", "Europe/London", []string{"08:00", "16:30"}},
+		{"Frankfurt Stock Exchange", "Europe/Berlin", []string{"08:00", "22:00"}},
+		{"SIX Swiss Exchange", "Europe/Zurich", []string{"09:00", "17:20"}},
+		{"Euronext Amsterdam", "Europe/Amsterdam", []string{"09:00", "17:30"}},
+		{"Stockholm Stock Exchange", "Europe/Stockholm", []string{"09:00", "17:25"}},
+		{"B3 S.A.", "America/Sao_Paulo", []string{"10:00", "17:55"}},
+		{"Johannesburg Stock Exchange (JSE)", "Africa/Johannesburg", []string{"09:00", "17:00"}},
+		{"Australian Securities Exchange (ASX)", "Australia/Sydney", []string{"10:00", "16:00"}},
 	}
 
 	for _, market := range markets {
