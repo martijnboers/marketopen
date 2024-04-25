@@ -5,12 +5,15 @@ import (
 	"time"
 )
 
-const timeFormat = "15:04"
-
 type Market struct {
 	Name             string
 	TimeZoneLocation string
 	TradingHours     []string
+}
+
+func nowToHours(timezone time.Time, timeToBeParsed string) time.Time {
+	parsedTime, _ := time.Parse("15:04", timeToBeParsed)
+	return time.Date(timezone.Year(), timezone.Month(), timezone.Day(), parsedTime.Hour(), parsedTime.Minute(), 0, 0, timezone.Location())
 }
 
 func (m Market) isOpen() bool {
@@ -19,18 +22,11 @@ func (m Market) isOpen() bool {
 		fmt.Println(err)
 	}
 	var nowIn = time.Now().In(location)
-	var parsedTimes []time.Time
-
-	for _, t := range m.TradingHours {
-		parsedTime, _ := time.Parse(timeFormat, t)
-		parsedDateTime := time.Date(nowIn.Year(), nowIn.Month(), nowIn.Day(), parsedTime.Hour(), parsedTime.Minute(), 0, 0, nowIn.Location())
-		parsedTimes = append(parsedTimes, parsedDateTime)
-	}
 
 	// Opening hours always come in pairs
-	for i := 0; i < len(parsedTimes); i += 2 {
-		opening := parsedTimes[i]
-		closing := parsedTimes[i+1]
+	for i := 0; i < len(m.TradingHours); i += 2 {
+		opening := nowToHours(nowIn, m.TradingHours[i])
+		closing := nowToHours(nowIn, m.TradingHours[i+1])
 
 		if nowIn.After(opening) && nowIn.Before(closing) {
 			return true
