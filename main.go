@@ -5,25 +5,40 @@ import (
 	"time"
 )
 
+const timeFormat = "15:04"
+
 type Market struct {
-	Name             string
-	Location         string
-	TimeZoneLocation string
-	TradingHours     []time.Time
+	Name         string
+	TradingHours []time.Time
+	LocalTime    time.Time
+}
+
+func NewMarket(name string, timezoneLocation string, times ...string) *Market {
+	var parsedTimes []time.Time
+	location, err := time.LoadLocation(timezoneLocation)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	nowIn := time.Now().In(location)
+
+	for _, t := range times {
+		parsedTime, _ := time.Parse(timeFormat, t)
+		parsedDateTime := time.Date(nowIn.Year(), nowIn.Month(), nowIn.Day(), parsedTime.Hour(), parsedTime.Minute(), 0, 0, nowIn.Location())
+		parsedTimes = append(parsedTimes, parsedDateTime)
+	}
+
+	market := Market{name, parsedTimes, nowIn}
+	return &market
 }
 
 func (m Market) isOpen() bool {
-	location, _ := time.LoadLocation(m.TimeZoneLocation)
-	nowIn := time.Now().In(location)
-
 	// Opening hours always come in pairs
 	for i := 0; i < len(m.TradingHours); i += 2 {
 		opening := m.TradingHours[i]
 		closing := m.TradingHours[i+1]
 
-		fmt.Printf("awareTime: (%v) opening: (%v) closing (%s)", nowIn, opening, closing)
-
-		if nowIn.After(opening) && nowIn.Before(closing) {
+		if m.LocalTime.After(opening) && m.LocalTime.Before(closing) {
 			return true
 		}
 	}
@@ -33,36 +48,30 @@ func (m Market) isOpen() bool {
 
 func main() {
 	markets := []Market{
-		{"New York Stock Exchange (NYSE)", "New York, United States", "America/New_York", parseTimes("09:30", "16:00")},
-		{"Tokyo Stock Exchange", "Tokyo, Japan", "Asia/Tokyo", parseTimes("09:00", "11:30", "12:30", "15:00")},
-		{"Stock Exchange of Hong Kong (SEHK)", "Hong Kong", "Asia/Hong_Kong", parseTimes("09:30", "12:00", "13:00", "16:00")},
-		{"National Stock Exchange of India (NSE)", "Mumbai, India", "Asia/Kolkata", parseTimes("09:15", "15:30")},
-		{"Shanghai Stock Exchange (SSE)", "Shanghai, China", "Asia/Shanghai", parseTimes("09:30", "11:30", "13:00", "14:57")},
-		{"Shenzhen Stock Exchange (SZSE)", "Shenzhen, China", "Asia/Shanghai", parseTimes("09:30", "11:30", "13:00", "14:57")},
-		{"BSE Limited", "Mumbai, India", "Asia/Kolkata", parseTimes("09:15", "15:30")},
-		{"Toronto Stock Exchange (TSX)", "Toronto, Canada", "America/Toronto", parseTimes("09:30", "16:00")},
-		{"Nasdaq Stock Market", "New York, United States", "America/New_York", parseTimes("09:30", "16:00")},
-		{"London Stock Exchange", "London, United Kingdom", "Europe/London", parseTimes("08:00", "16:30")},
-		{"Frankfurt Stock Exchange", "Frankfurt, Germany", "Europe/Berlin", parseTimes("08:00", "22:00")},
-		{"SIX Swiss Exchange", "Zurich, Switzerland", "Europe/Zurich", parseTimes("09:00", "17:20")},
-		// Testing with later time
-		{"Euronext Amsterdam", "Amsterdam, Netherlands", "Europe/Amsterdam", parseTimes("09:00", "23:30")},
-		{"Stockholm Stock Exchange", "Stockholm, Sweden", "Europe/Stockholm", parseTimes("09:00", "17:25")},
-		{"B3 S.A.", "São Paulo, Brazil", "America/Sao_Paulo", parseTimes("10:00", "17:55")},
-		{"Johannesburg Stock Exchange (JSE)", "Johannesburg, South Africa", "Africa/Johannesburg", parseTimes("09:00", "17:00")},
-		{"Australian Securities Exchange (ASX)", "Sydney, Australia", "Australia/Sydney", parseTimes("10:00", "16:00")},
+		*NewMarket("New York Stock Exchange (NYSE)", "America/New_York", "09:30", "16:00"),
+		*NewMarket("Tokyo Stock Exchange", "Asia/Tokyo", "09:00", "11:30", "12:30", "15:00"),
+		*NewMarket("Stock Exchange of Hong Kong (SEHK)", "Asia/Hong_Kong", "09:30", "12:00", "13:00", "16:00"),
+		*NewMarket("National Stock Exchange of India (NSE)", "Asia/Kolkata", "09:15", "15:30"),
+		*NewMarket("Shanghai Stock Exchange (SSE)", "Asia/Shanghai", "09:30", "11:30", "13:00", "14:57"),
+		*NewMarket("Shenzhen Stock Exchange (SZSE)", "Asia/Shanghai", "09:30", "11:30", "13:00", "14:57"),
+		*NewMarket("BSE Limited", "Asia/Kolkata", "09:15", "15:30"),
+		*NewMarket("Toronto Stock Exchange (TSX)", "America/Toronto", "09:30", "16:00"),
+		*NewMarket("Nasdaq Stock Market", "America/New_York", "09:30", "16:00"),
+		*NewMarket("London Stock Exchange", "Europe/London", "08:00", "16:30"),
+		*NewMarket("Frankfurt Stock Exchange", "Europe/Berlin", "08:00", "22:00"),
+		*NewMarket("SIX Swiss Exchange", "Europe/Zurich", "09:00", "17:20"),
+		*NewMarket("Euronext Amsterdam", "Europe/Amsterdam", "09:00", "17:30"),
+		*NewMarket("Stockholm Stock Exchange", "Europe/Stockholm", "09:00", "17:25"),
+		*NewMarket("B3 S.A.", "America/Sao_Paulo", "10:00", "17:55"),
+		*NewMarket("Johannesburg Stock Exchange (JSE)", "Africa/Johannesburg", "09:00", "17:00"),
+		*NewMarket("Australian Securities Exchange (ASX)", "Australia/Sydney", "10:00", "16:00"),
 	}
 
 	for _, market := range markets {
-		fmt.Printf("(%s) IS OPEN: %v \n", market.Name, market.isOpen())
+		var isOpen = "CLOSED"
+		if market.isOpen() {
+			isOpen = "OPEN"
+		}
+		fmt.Printf("%s is %s \n", market.Name, isOpen)
 	}
-}
-
-func parseTimes(times ...string) []time.Time {
-	var parsedTimes []time.Time
-	for _, t := range times {
-		parsedTime, _ := time.Parse("15:04", t)
-		parsedTimes = append(parsedTimes, parsedTime)
-	}
-	return parsedTimes
 }
